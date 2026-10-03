@@ -249,6 +249,18 @@ share** and **Open in file viewer**. Pictures, videos and PDFs keep their native
 other document formats such as Word or Pages open in the device's own viewer when it has one.
 If nothing on the device can show a format, save or share it to open it elsewhere.
 
+## Interactive visualizations
+
+Ask your agent for an interactive chart, simulation, diagram, or small calculator
+in the conversation. Visualizations work on web, desktop, and mobile with any
+provider. A visualization created on a remote environment loads from that
+environment, so keep it connected when viewing the conversation on another device.
+The saved visualization stays available if its original source file changes or is deleted.
+
+Visualizations use self-contained data. They cannot read local files, call APIs,
+or navigate away from the conversation. Ask the agent to update a visualization
+when its data or behavior needs to change.
+
 ## Images and videos in messages
 
 Select an image or video attachment or link to preview it. Playback support depends

@@ -1733,6 +1733,13 @@ code {
 
 /* Chat markdown rendering */
 
+[data-inline-visualization]:fullscreen {
+  max-width: none !important;
+  padding: 1rem;
+  overflow: auto;
+  background: var(--background);
+}
+
 .chat-markdown > :first-child {
   margin-top: 0;
 }

@@ -199,6 +199,8 @@ import {
 } from "../browser/openFileInPreview";
 import { resolveLinkTarget } from "../browser/browserLinkTarget";
 import { PullRequestLinkPreview } from "./pullRequest/PullRequestLinkPreview";
+import { resolveInlineVisualization } from "@t3tools/client-runtime/inline-visualizations";
+import { InlineVisualization } from "./chat/InlineVisualization";
 
 interface ChatMarkdownProps {
   text: string;
@@ -3300,15 +3302,18 @@ const CHAT_MARKDOWN_COMPONENTS = {
     return <MarkdownDetails open={detailsOpen}>{children}</MarkdownDetails>;
   },
   pre: function MarkdownPre({ node, children, ...props }) {
-    const { resolvedTheme, diffThemeName, isStreaming, onRunShellCommand, text } = use(
-      ChatMarkdownRendererContext,
-    );
+    const { resolvedTheme, diffThemeName, isStreaming, onRunShellCommand, text, environmentId } =
+      use(ChatMarkdownRendererContext);
     const codeBlock = extractCodeBlock(children);
     if (!codeBlock) {
       return <pre {...props}>{children}</pre>;
     }
 
     const language = extractFenceLanguage(codeBlock.className);
+    const visualization = resolveInlineVisualization(language, codeBlock.code);
+    if (visualization && isClosedCodeFence(node, text)) {
+      return <InlineVisualization environmentId={environmentId} visualization={visualization} />;
+    }
     const fenceTitle = extractFenceTitle(extractPreCodeMeta(node));
     return (
       <MarkdownCodeBlock

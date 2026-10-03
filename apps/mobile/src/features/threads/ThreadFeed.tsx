@@ -96,6 +96,12 @@ import { PresentationSource } from "../../components/NativePresentation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInUp, type SharedValue } from "react-native-reanimated";
 import { useUniwindTheme } from "../../lib/useUniwindTheme";
+import {
+  splitInlineVisualizationMarkdown,
+  type InlineVisualizationMarkdownSegment,
+} from "@t3tools/client-runtime/inline-visualizations";
+import type { CodexArtifactTemplateMarkdownSegment } from "@t3tools/client-runtime/codex-markdown-directives";
+import { InlineVisualization } from "./InlineVisualization";
 import { IOS_NAV_BAR_HEIGHT } from "../../lib/layoutMetrics";
 import { useFontFamily } from "../../lib/useFontFamily";
 import { scopedThreadKey } from "../../lib/scopedEntities";
@@ -881,6 +887,7 @@ interface MarkdownLinkHandlers {
 }
 
 const AssistantMarkdownContent = memo(function AssistantMarkdownContent(props: {
+  readonly environmentId: EnvironmentId;
   readonly markdown: string;
   readonly markdownStyles: MarkdownStyleSet;
   readonly linkHandlers: MarkdownLinkHandlers;
@@ -889,11 +896,30 @@ const AssistantMarkdownContent = memo(function AssistantMarkdownContent(props: {
   readonly skills?: ReadonlyArray<SelectableMarkdownSkill> | undefined;
 }) {
   const segments = useMemo(
-    () => splitCodexArtifactTemplateMarkdown(props.markdown),
+    () =>
+      splitInlineVisualizationMarkdown(props.markdown).flatMap<
+        InlineVisualizationMarkdownSegment | CodexArtifactTemplateMarkdownSegment
+      >((segment) =>
+        segment.kind === "visualization"
+          ? [segment]
+          : splitCodexArtifactTemplateMarkdown(segment.markdown).map((part) => ({
+              ...part,
+              sourceOffset: part.sourceOffset + segment.sourceOffset,
+            })),
+      ),
     [props.markdown],
   );
 
   return segments.map((segment) => {
+    if (segment.kind === "visualization") {
+      return (
+        <InlineVisualization
+          key={`visualization:${segment.sourceOffset}`}
+          environmentId={props.environmentId}
+          visualization={segment.visualization}
+        />
+      );
+    }
     if (segment.kind === "artifact-template") {
       return (
         <ArtifactTemplateCard
@@ -1839,6 +1865,7 @@ function renderFeedEntry(
         {renderedText.trim().length > 0 ? (
           <MarkdownImageAvailableWidthContext value={props.markdownContentWidth}>
             <AssistantMarkdownContent
+              environmentId={props.environmentId}
               markdown={renderedText}
               markdownStyles={styles}
               linkHandlers={props.markdownLinkHandlers}
@@ -2429,6 +2456,7 @@ export const ThreadFeed = memo(function ThreadFeed(props: ThreadFeedProps) {
   const renderReasoning = useCallback(
     (text: string) => (
       <AssistantMarkdownContent
+        environmentId={props.environmentId}
         markdown={text}
         markdownStyles={markdownStyles.assistant}
         linkHandlers={markdownLinkHandlers}
@@ -2436,7 +2464,13 @@ export const ThreadFeed = memo(function ThreadFeed(props: ThreadFeedProps) {
         skills={props.skills}
       />
     ),
-    [markdownStyles.assistant, markdownLinkHandlers, renderMarkdownImage, props.skills],
+    [
+      markdownStyles.assistant,
+      markdownLinkHandlers,
+      renderMarkdownImage,
+      props.skills,
+      props.environmentId,
+    ],
   );
   const reviewCommentColors = useReviewCommentColors();
   const unsettledTurnId = threadFeedRunIsUnsettled(props.latestRun) ? props.latestRun.runId : null;

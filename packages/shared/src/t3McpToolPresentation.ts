@@ -284,6 +284,10 @@ const T3_MCP_TOOLS: Readonly<Record<string, T3McpToolDefinition>> = {
     "attachment-discard",
   ),
   t3_thread_send_attachments: tool(["Send", "Sending", "Sent", "attachments"], "attachment-send"),
+  t3_visualization_create: tool(
+    ["Create", "Creating", "Created", "an inline visualization"],
+    "attachment-prepare",
+  ),
 };
 
 /**

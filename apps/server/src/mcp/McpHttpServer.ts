@@ -28,6 +28,7 @@ import { ProjectToolkit } from "./toolkits/project/tools.ts";
 import { ProjectHandlersLive } from "./toolkits/project/handlers.ts";
 import { AttachmentToolkit } from "./toolkits/attachment/tools.ts";
 import { AttachmentHandlersLive } from "./toolkits/attachment/handlers.ts";
+import * as InlineVisualization from "../assets/InlineVisualization.ts";
 import { ThreadToolkit } from "./toolkits/thread/tools.ts";
 import { ThreadToolkitHandlersLive } from "./toolkits/thread/handlers.ts";
 import * as ThreadMetadataMcpService from "./ThreadMetadataMcpService.ts";
@@ -689,6 +690,7 @@ const ProjectRegistrationLive = McpServer.toolkit(ProjectToolkit).pipe(
 
 const AttachmentRegistrationLive = McpServer.toolkit(AttachmentToolkit).pipe(
   Layer.provide(AttachmentHandlersLive),
+  Layer.provide(InlineVisualization.layer),
 );
 
 export const PullRequestsToolkitRegistrationLive = McpServer.toolkit(PullRequestsToolkit).pipe(

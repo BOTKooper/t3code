@@ -1,6 +1,7 @@
 import { type ChatAttachment, MessageId, OrchestratorMcpFailure } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Upload from "../../../assets/AttachmentUpload.ts";
+import * as InlineVisualization from "../../../assets/InlineVisualization.ts";
 import * as Claims from "../../../orchestration-v2/AttachmentClaims.ts";
 import * as ThreadMessageIntake from "../../../orchestration-v2/ThreadMessageIntake.ts";
 import {
@@ -32,6 +33,19 @@ export function resolveAttachmentReferences(
 }
 
 export const AttachmentHandlersLive = AttachmentToolkit.toLayer({
+  t3_visualization_create: (input) =>
+    Effect.gen(function* () {
+      const { caller } = yield* readMutationCaller();
+      const visualizations = yield* InlineVisualization.InlineVisualization;
+      return yield* visualizations
+        .create({ ...input, threadId: caller.id })
+        .pipe(
+          Effect.mapError(
+            (error) =>
+              new OrchestratorMcpFailure({ code: "invalid_request", message: error.message }),
+          ),
+        );
+    }),
   t3_attachment_prepare_upload: (input) =>
     Effect.gen(function* () {
       yield* readMutationCaller();

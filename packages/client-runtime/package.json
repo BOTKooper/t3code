@@ -3,6 +3,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./inline-visualizations": {
+      "types": "./src/inlineVisualizations.ts",
+      "default": "./src/inlineVisualizations.ts"
+    },
     "./composerThreadItems": {
       "types": "./src/composerThreadItems.ts",
       "default": "./src/composerThreadItems.ts"

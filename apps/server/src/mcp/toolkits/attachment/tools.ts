@@ -3,6 +3,8 @@ import {
   AttachmentCreateUploadUrlInput,
   AttachmentCreateUploadUrlResult,
   AttachmentDeleteInput,
+  InlineVisualizationCreateInput,
+  InlineVisualizationCreateResult,
   MessageId,
   RunId,
   ThreadId,
@@ -17,6 +19,7 @@ import * as ServerSecretStore from "../../../auth/ServerSecretStore.ts";
 import * as ServerConfig from "../../../config.ts";
 import * as ThreadManagementService from "../../../orchestration-v2/ThreadManagementService.ts";
 import * as McpInvocationContext from "../../McpInvocationContext.ts";
+import * as InlineVisualization from "../../../assets/InlineVisualization.ts";
 
 const shared = {
   failure: OrchestratorMcpFailure,
@@ -65,8 +68,18 @@ const AttachmentSendTool = Tool.make("t3_thread_send_attachments", {
 })
   .annotate(Tool.Destructive, true)
   .annotate(Tool.OpenWorld, true);
+const VisualizationCreateTool = Tool.make("t3_visualization_create", {
+  ...shared,
+  dependencies: [...shared.dependencies, InlineVisualization.InlineVisualization],
+  description:
+    "Create an interactive visualization inline in this conversation. Provide a self-contained HTML fragment as source.html, or an absolute HTML file path on this environment as source.path. The app saves a durable snapshot, so it works on remote clients and survives source edits or deletion. Limit 1 MiB. Scripts run in an isolated sandbox; API calls, local files, forms and navigation are blocked. Inline CSS/JS and data are supported, as are scripts/styles from cdn.jsdelivr.net, cdnjs.cloudflare.com, esm.sh, unpkg.com and Google/Bunny fonts. Use CSS variables --background, --foreground, --muted-foreground, --border, --primary and --viz-series-1 through --viz-series-6 for theme-aware visuals. Return the exact markdown result in your final reply outside any enclosing code fence. For updates, create a new snapshot and return its new markdown. Use mode=wide only for wide multi-panel visuals.",
+  parameters: InlineVisualizationCreateInput,
+  success: InlineVisualizationCreateResult,
+}).annotate(Tool.Destructive, false);
+
 export const AttachmentToolkit = Toolkit.make(
   AttachmentUploadTool,
   AttachmentDiscardTool,
   AttachmentSendTool,
+  VisualizationCreateTool,
 );
