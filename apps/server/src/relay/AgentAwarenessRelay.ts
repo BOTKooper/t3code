@@ -423,9 +423,9 @@ export const make = Effect.gen(function* () {
   // tombstone can never race an in-flight live update; a recovered state
   // clears the deadline. Assigned after the worker exists.
   const publishConfirmDeadlines = new Map<ThreadId, number>();
-  // Threads last seen muted, and when each was unmuted. Work that finished
-  // while a thread was muted must not alert once it is unmuted.
-  const mutedThreadIds = new Set<ThreadId>();
+  // When each thread was last unmuted, from the event itself so a batched
+  // publish cannot move the cutoff. Work that finished while a thread was muted
+  // must not alert once it is unmuted.
   const unmutedAtByThread = new Map<ThreadId, number>();
   let schedulePublishConfirm: (threadId: ThreadId) => Effect.Effect<void> = () => Effect.void;
   const publishRetries = new Map<
@@ -539,11 +539,6 @@ export const make = Effect.gen(function* () {
       // publish re-delivers the user's aggregate. Checked before the archive
       // filter so archiving one stays quiet too.
       return;
-    }
-    if (threadShell?.mutedAt != null) {
-      mutedThreadIds.add(threadId);
-    } else if (mutedThreadIds.delete(threadId)) {
-      unmutedAtByThread.set(threadId, (yield* DateTime.now).epochMilliseconds);
     }
     // A muted thread publishes like an archived one, so the relay clears it
     // and no device is alerted.
@@ -844,6 +839,9 @@ export const make = Effect.gen(function* () {
       yield* forkParked(
         Stream.runForEach(threads.streamDomainEvents, (event) => {
           const threadId = eventThreadId(event);
+          if (event.type === "thread.mute-set" && event.payload.mutedAt == null) {
+            unmutedAtByThread.set(threadId, DateTime.toEpochMillis(event.occurredAt));
+          }
           if (!shouldPublishAgentAwarenessEvent(event)) {
             return Effect.void;
           }
