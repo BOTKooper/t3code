@@ -292,6 +292,9 @@ export function useThreadActions() {
   const setThreadAutoSettleMutation = useOrchestrationCommand(threadEnvironment.setAutoSettle, {
     reportFailure: false,
   });
+  const setThreadMutedMutation = useOrchestrationCommand(threadEnvironment.setMuted, {
+    reportFailure: false,
+  });
   const reorderPinnedThreadMutation = useOrchestrationCommand(threadEnvironment.reorderPin, {
     reportFailure: false,
   });
@@ -696,6 +699,15 @@ export function useThreadActions() {
     [setThreadAutoSettleMutation],
   );
 
+  const setThreadMuted = useCallback(
+    (target: ScopedThreadRef, muted: boolean) =>
+      setThreadMutedMutation({
+        environmentId: target.environmentId,
+        input: { threadId: target.threadId, muted },
+      }),
+    [setThreadMutedMutation],
+  );
+
   const pinThread = useCallback(
     async (target: ScopedThreadRef, opts: { orderKey?: string } = {}) => {
       // Version skew: never send the command to a server that predates it.
@@ -1021,6 +1033,7 @@ export function useThreadActions() {
       reorderActiveThread,
       markThreadUnread,
       setThreadAutoSettle,
+      setThreadMuted,
     }),
     [
       archiveThread,
@@ -1032,6 +1045,7 @@ export function useThreadActions() {
       reorderPinnedThread,
       reorderActiveThread,
       setThreadAutoSettle,
+      setThreadMuted,
       settleThread,
       snoozeThread,
       unarchiveThread,

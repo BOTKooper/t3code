@@ -42,6 +42,7 @@ import {
   type ReorderPinnedThreadInput,
   type ReorderActiveThreadInput,
   type SetThreadAutoSettleInput,
+  type SetThreadMutedInput,
   type SettleThreadInput,
   type SnoozeThreadInput,
   type StartThreadTurnInput,
@@ -78,6 +79,7 @@ import {
   reorderPinnedThread,
   reorderActiveThread,
   setThreadAutoSettle,
+  setThreadMuted,
   settleThread,
   snoozeThread,
   startThreadTurn,
@@ -122,6 +124,7 @@ export type {
   ReorderPinnedThreadInput,
   ReorderActiveThreadInput,
   SetThreadAutoSettleInput,
+  SetThreadMutedInput,
   SettleThreadInput,
   SnoozeThreadInput,
   StartThreadTurnInput,
@@ -217,6 +220,12 @@ export function createThreadEnvironmentAtoms<R, E>(
     setAutoSettle: createEnvironmentCommand(runtime, {
       label: "environment-data:commands:thread:set-auto-settle",
       execute: (input: SetThreadAutoSettleInput) => setThreadAutoSettle(input),
+      scheduler,
+      concurrency,
+    }),
+    setMuted: createEnvironmentCommand(runtime, {
+      label: "environment-data:commands:thread:set-muted",
+      execute: (input: SetThreadMutedInput) => setThreadMuted(input),
       scheduler,
       concurrency,
     }),
@@ -455,6 +464,10 @@ export function createThreadEnvironmentAtoms<R, E>(
     setAutoSettle: optimistic.wrap(commands.setAutoSettle, (thread, input, now) => ({
       ...thread,
       autoSettleDisabledAt: input.enabled ? null : (thread.autoSettleDisabledAt ?? now),
+    })),
+    setMuted: optimistic.wrap(commands.setMuted, (thread, input, now) => ({
+      ...thread,
+      mutedAt: input.muted ? (thread.mutedAt ?? now) : null,
     })),
     pin: optimistic.wrap(commands.pin, (thread, input, now) => ({
       ...thread,

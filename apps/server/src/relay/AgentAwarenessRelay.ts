@@ -100,6 +100,8 @@ export function shouldPublishAgentAwarenessEvent(
     case "thread.pull-request-synced":
     case "thread.model-selection-updated":
     case "thread.provider-switched":
+    // Muting withdraws the thread from push; unmuting restores it.
+    case "thread.mute-set":
     case "run.created":
     case "run.updated":
     case "runtime-request.updated":
@@ -346,7 +348,7 @@ export function resolveAgentAwarenessRelayActiveThreadIds(input: {
   return input.threads
     .filter((thread) => {
       const project = projectById.get(thread.projectId);
-      if (!project) {
+      if (!project || thread.mutedAt != null) {
         return false;
       }
       const state = projectThreadAwarenessV2({
@@ -534,8 +536,10 @@ export const make = Effect.gen(function* () {
       // filter so archiving one stays quiet too.
       return;
     }
+    // A muted thread publishes like an archived one, so the relay clears it
+    // and no device is alerted.
     const thread =
-      threadShell === null || threadShell.archivedAt !== null
+      threadShell === null || threadShell.archivedAt !== null || threadShell.mutedAt != null
         ? Option.none<OrchestrationV2ThreadShell>()
         : Option.some(threadShell);
     const project = Option.isSome(thread)

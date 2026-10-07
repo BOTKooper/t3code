@@ -129,6 +129,7 @@ describe("startup agent activity", () => {
         }),
         shell({ id: ThreadId.make("idle"), status: "idle" }),
         shell({ id: ThreadId.make("missing-project"), projectId: ProjectId.make("missing") }),
+        shell({ id: ThreadId.make("muted"), mutedAt: DateTime.makeUnsafe(NOW) }),
       ],
     });
     assert.deepStrictEqual(ids, [THREAD_ID, newCompleted, newFailed]);
@@ -302,6 +303,7 @@ describe("AgentAwarenessRelay", () => {
       "thread.archived",
       "thread.unarchived",
       "thread.deleted",
+      "thread.mute-set",
     ] as const) {
       assert.isTrue(AgentAwarenessRelay.shouldPublishAgentAwarenessEvent({ type }));
     }
@@ -660,6 +662,24 @@ describe("AgentAwarenessRelay", () => {
       yield* relay.drain;
       assert.equal(publications.length, 2);
       assert.equal(publications[1]?.state, null);
+    }),
+  );
+
+  it.effect("withdraws a muted thread and restores it when unmuted", () =>
+    Effect.gen(function* () {
+      const { relay, currentShell, publications } = yield* makeTestRelay();
+      yield* relay.publishThread(THREAD_ID);
+      assert.equal(publications.length, 1);
+      yield* Ref.set(currentShell, shell({ mutedAt: yield* DateTime.now }));
+      yield* relay.publishThread(THREAD_ID);
+      yield* TestClock.adjust("5 seconds");
+      yield* relay.drain;
+      assert.equal(publications.length, 2);
+      assert.equal(publications[1]?.state, null);
+      yield* Ref.set(currentShell, shell());
+      yield* relay.publishThread(THREAD_ID);
+      assert.equal(publications.length, 3);
+      assert.notEqual(publications[2]?.state, null);
     }),
   );
 
