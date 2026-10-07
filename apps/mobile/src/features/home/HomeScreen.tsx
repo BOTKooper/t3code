@@ -107,6 +107,7 @@ interface HomeScreenProps {
     thread: EnvironmentThreadShell,
     enabled: boolean,
   ) => Promise<boolean>;
+  readonly onSetThreadMuted: (thread: EnvironmentThreadShell, muted: boolean) => Promise<boolean>;
   readonly onMoveThread: (
     thread: EnvironmentThreadShell,
     direction: ThreadMoveDestination,
@@ -437,6 +438,12 @@ export function HomeScreen(props: HomeScreenProps) {
     },
     [props.onSetThreadAutoSettle],
   );
+  const handleSetThreadMuted = useCallback(
+    (thread: EnvironmentThreadShell, muted: boolean) => {
+      void props.onSetThreadMuted(thread, muted);
+    },
+    [props.onSetThreadMuted],
+  );
   const handleRegenerateThreadTitle = useCallback(
     (thread: EnvironmentThreadShell) => {
       void props.onRegenerateThreadTitle(thread);
@@ -498,6 +505,7 @@ export function HomeScreen(props: HomeScreenProps) {
     snoozeEnvironmentIds,
     pinningEnvironmentIds,
     autoSettleOptOutEnvironmentIds,
+    muteEnvironmentIds,
     pinReorderEnvironmentIds,
     activeReorderEnvironmentIds,
     titleRegenerationEnvironmentIds,
@@ -757,6 +765,7 @@ export function HomeScreen(props: HomeScreenProps) {
           snoozeSupported={snoozeEnvironmentIds.has(thread.environmentId)}
           pinningSupported={pinningEnvironmentIds.has(thread.environmentId)}
           autoSettleOptOutSupported={autoSettleOptOutEnvironmentIds.has(thread.environmentId)}
+          muteSupported={muteEnvironmentIds.has(thread.environmentId)}
           reorderSupported={
             item.item.pinned
               ? pinReorderEnvironmentIds.has(thread.environmentId)
@@ -770,6 +779,7 @@ export function HomeScreen(props: HomeScreenProps) {
           onPinThread={handlePinThread}
           onUnpinThread={handleUnpinThread}
           onSetThreadAutoSettle={handleSetThreadAutoSettle}
+          onSetThreadMuted={handleSetThreadMuted}
           onMoveThread={handleMoveThread}
           onSwipeableClose={handleSwipeableClose}
           onSwipeableWillOpen={handleSwipeableWillOpen}
@@ -792,7 +802,9 @@ export function HomeScreen(props: HomeScreenProps) {
       handleSwipeableWillOpen,
       handleUnsettleThread,
       handleSetThreadAutoSettle,
+      handleSetThreadMuted,
       autoSettleOptOutEnvironmentIds,
+      muteEnvironmentIds,
       pinningEnvironmentIds,
       autoSettleOptOutEnvironmentIds,
       machineByEnvironmentId,
