@@ -423,6 +423,10 @@ export const make = Effect.gen(function* () {
   // tombstone can never race an in-flight live update; a recovered state
   // clears the deadline. Assigned after the worker exists.
   const publishConfirmDeadlines = new Map<ThreadId, number>();
+  // Threads last seen muted, and when each was unmuted. Work that finished
+  // while a thread was muted must not alert once it is unmuted.
+  const mutedThreadIds = new Set<ThreadId>();
+  const unmutedAtByThread = new Map<ThreadId, number>();
   let schedulePublishConfirm: (threadId: ThreadId) => Effect.Effect<void> = () => Effect.void;
   const publishRetries = new Map<
     ThreadId,
@@ -536,6 +540,11 @@ export const make = Effect.gen(function* () {
       // filter so archiving one stays quiet too.
       return;
     }
+    if (threadShell?.mutedAt != null) {
+      mutedThreadIds.add(threadId);
+    } else if (mutedThreadIds.delete(threadId)) {
+      unmutedAtByThread.set(threadId, (yield* DateTime.now).epochMilliseconds);
+    }
     // A muted thread publishes like an archived one, so the relay clears it
     // and no device is alerted.
     const thread =
@@ -553,13 +562,18 @@ export const make = Effect.gen(function* () {
     });
     const publishIdentity = agentAwarenessPublishIdentity(snapshot.state);
     const publishedStateByThread = yield* Ref.get(publishedStateByThreadRef);
-    if (
-      (snapshot.state?.phase === "completed" || snapshot.state?.phase === "failed") &&
-      !publishedStateByThread.has(threadId)
-    ) {
-      // Startup has no publish history. Only work from this server process may
-      // produce an initial terminal alert; historical threads remain quiet.
-      if (Option.isNone(thread) || !terminalWorkSinceStart(thread.value, startedAt)) return;
+    if (snapshot.state?.phase === "completed" || snapshot.state?.phase === "failed") {
+      // Startup has no publish history, and unmuting follows a withdrawal. Only
+      // work that finished after that point may produce a terminal alert.
+      const quietBefore =
+        unmutedAtByThread.get(threadId) ??
+        (publishedStateByThread.has(threadId) ? undefined : startedAt);
+      if (
+        quietBefore !== undefined &&
+        (Option.isNone(thread) || !terminalWorkSinceStart(thread.value, quietBefore))
+      ) {
+        return;
+      }
     }
     if (publishedStateByThread.get(threadId) === publishIdentity) {
       // The projection is back at (or never left) the last published state, so

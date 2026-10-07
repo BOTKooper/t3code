@@ -683,6 +683,41 @@ describe("AgentAwarenessRelay", () => {
     }),
   );
 
+  it.effect("keeps work that finished while muted quiet after unmuting", () =>
+    Effect.gen(function* () {
+      const { relay, currentShell, publications } = yield* makeTestRelay();
+      yield* relay.publishThread(THREAD_ID);
+      assert.equal(publications.length, 1);
+      yield* Ref.set(currentShell, shell({ mutedAt: yield* DateTime.now }));
+      yield* relay.publishThread(THREAD_ID);
+      yield* TestClock.adjust("5 seconds");
+      yield* relay.drain;
+      assert.equal(publications.length, 2);
+      assert.equal(publications[1]?.state, null);
+
+      const finishedWhileMuted = shell({
+        status: "completed",
+        latestRunCompletedAt: yield* DateTime.now,
+      });
+      yield* Ref.set(currentShell, { ...finishedWhileMuted, mutedAt: yield* DateTime.now });
+      yield* relay.publishThread(THREAD_ID);
+      yield* TestClock.adjust("1 second");
+      yield* Ref.set(currentShell, finishedWhileMuted);
+      yield* relay.publishThread(THREAD_ID);
+      yield* TestClock.adjust("5 seconds");
+      yield* relay.drain;
+      assert.equal(publications.length, 2);
+
+      yield* Ref.set(
+        currentShell,
+        shell({ status: "completed", latestRunCompletedAt: yield* DateTime.now }),
+      );
+      yield* relay.publishThread(THREAD_ID);
+      assert.equal(publications.length, 3);
+      assert.equal(publications[2]?.state?.phase, "completed");
+    }),
+  );
+
   it.effect.each([
     { label: "live", archived: false },
     { label: "archived", archived: true },
